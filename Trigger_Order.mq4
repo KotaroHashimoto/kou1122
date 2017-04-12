@@ -477,7 +477,7 @@ void OnTick()
       order1Activated = True;
     }
   }
-
+  
   if(Order_2 != NONE && Action_Price == 0) {
     order2Activated = True;
   }
@@ -497,6 +497,9 @@ void OnTick()
       if(OrderCloseTime() == 0) {
         return;
       }
+      else {
+        ObjectSetText(monitorID1, monitorID1 + IntegerToString(Monitor_Ticket_1) + " - CLOSED", 16, "Arial", clrYellow);
+      }
     }
   }
   if(0 < Monitor_Ticket_2) {
@@ -504,9 +507,12 @@ void OnTick()
       if(OrderCloseTime() == 0) {
         return;
       }
+      else {
+        ObjectSetText(monitorID2, monitorID2 + IntegerToString(Monitor_Ticket_2) + " - CLOSED", 16, "Arial", clrYellow);
+      }
     }
   }
-  if(order1Activated) {
+  if(order1Activated) {  
     int ticket = OrderSend(thisSymbol, Order_1, Entry_Lot_1, NormalizeDouble(Entry_Price_1, Digits), 3, NormalizeDouble(StopLoss_1, Digits), NormalizeDouble(TakeProfit_1, Digits), NULL, Magic_Number);
     if(0 < ticket) {
       Order_1 = NONE;
@@ -514,7 +520,6 @@ void OnTick()
       ObjectDelete(0, order1ID);
       ObjectDelete(0, orderSL1ID);
       ObjectDelete(0, orderTP1ID);
-      ObjectSetText(monitorID1, monitorID1 + IntegerToString(Monitor_Ticket_1) + " - CLOSED", 16, "Arial", clrYellow);
     }
   }
   
@@ -526,7 +531,6 @@ void OnTick()
       ObjectDelete(0, order2ID);
       ObjectDelete(0, orderSL2ID);
       ObjectDelete(0, orderTP2ID);
-      ObjectSetText(monitorID1, monitorID1 + IntegerToString(Monitor_Ticket_2) + " - CLOSED", 16, "Arial", clrYellow);
     }
   }
 }
