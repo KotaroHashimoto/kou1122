@@ -124,7 +124,7 @@ void drawLabel() {
   ObjectSetInteger(0, monitorID1, OBJPROP_SELECTABLE, false);
   ObjectSetText(monitorID1, monitorID1 + IntegerToString(Monitor_Ticket_1), 16, "Arial", clrYellow);
   ObjectSetInteger(0, monitorID1, OBJPROP_YDISTANCE, 20);
-  ObjectSetInteger(0, monitorID1, OBJPROP_XDISTANCE, 10);
+  ObjectSetInteger(0, monitorID1, OBJPROP_XDISTANCE, 200);
 
   ObjectCreate(0, monitorID2, OBJ_LABEL, 0, 0, 0);
   ObjectSetInteger(0, monitorID2, OBJPROP_CORNER, CORNER_LEFT_UPPER);
@@ -132,7 +132,7 @@ void drawLabel() {
   ObjectSetInteger(0, monitorID2, OBJPROP_SELECTABLE, false);
   ObjectSetText(monitorID2, monitorID2 + IntegerToString(Monitor_Ticket_2), 16, "Arial", clrYellow);
   ObjectSetInteger(0, monitorID2, OBJPROP_YDISTANCE, 47);
-  ObjectSetInteger(0, monitorID2, OBJPROP_XDISTANCE, 10);
+  ObjectSetInteger(0, monitorID2, OBJPROP_XDISTANCE, 200);
 
 
   ObjectCreate(0, closeLabelID, OBJ_LABEL, 0, 0, 0);
@@ -144,7 +144,7 @@ void drawLabel() {
   string tlbl = "Friday Close Time: " + time;
   ObjectSetText(closeLabelID, tlbl, 16, "Arial", clrAqua);
   ObjectSetInteger(0, closeLabelID, OBJPROP_YDISTANCE, 75);
-  ObjectSetInteger(0, closeLabelID, OBJPROP_XDISTANCE, 10);
+  ObjectSetInteger(0, closeLabelID, OBJPROP_XDISTANCE, 200);
 }
 
 string OrderToString(Order type) {
