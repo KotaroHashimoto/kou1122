@@ -13,6 +13,7 @@
 input int Magic_Number = 170410;
 input bool Weekend_Exit = True;
 input int Base_Period_Friday_Hour_Shift = 1;
+input int JST_OffSet = 6;
 
 input int Monitor_Ticket_1 = 0;
 input int Monitor_Ticket_2 = 0;
@@ -20,12 +21,12 @@ input double Action_Price = 0;
 
 enum Order {
   NONE = -1,
-  BUY = OP_BUY,
-  SELL = OP_SELL,
   BUY_LIMIT = OP_BUYLIMIT,
   SELL_LIMIT = OP_SELLLIMIT,
   BUY_STOP = OP_BUYSTOP,
-  SELL_STOP = OP_SELLSTOP
+  SELL_STOP = OP_SELLSTOP,
+  BUY = OP_BUY,
+  SELL = OP_SELL
 };
 
 extern Order Order_1 = NONE;
@@ -139,8 +140,8 @@ void drawLabel() {
   ObjectSet(closeLabelID, OBJPROP_TIMEFRAMES, OBJ_ALL_PERIODS);
   ObjectSetInteger(0, closeLabelID, OBJPROP_SELECTABLE, false);
 
-  string time = IntegerToString(23 - Base_Period_Friday_Hour_Shift) + ":" + IntegerToString(59);
-  string tlbl = "Friday Close Time: " + time;
+  string time = IntegerToString((23 - Base_Period_Friday_Hour_Shift + JST_OffSet) % 24) + ":" + IntegerToString(59);
+  string tlbl = "Saturday Close Time: " + time;
   ObjectSetText(closeLabelID, tlbl, 16, "Arial", clrAqua);
   ObjectSetInteger(0, closeLabelID, OBJPROP_YDISTANCE, 75);
 //  ObjectSetInteger(0, closeLabelID, OBJPROP_XDISTANCE, 200);
@@ -490,6 +491,19 @@ void OnTick()
       order2Activated = True;
     }
   }
+  
+  if(0.0 < Action_Price) {
+    string apLbl = "Action Price";
+    if(order1Activated) {
+      apLbl += ", Order 1 ON";
+    }
+    if(order2Activated) {
+      apLbl += ", Order 2 ON";
+    }
+    ObjectSetText(actionPriceID, apLbl, 12, "Arial", clrYellow);
+  }
+
+
 
   if(0 < Monitor_Ticket_1) {
     if(OrderSelect(Monitor_Ticket_1, SELECT_BY_TICKET)) {
