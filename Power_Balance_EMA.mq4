@@ -45,7 +45,7 @@ enum Size {
   MN1 = PERIOD_MN1
 };
 
-input Size EMA_Time_Frame = M15;
+input Size EMA_Time_Frame = M5;
 input int EMA_Close_S_Period = 5;
 input int EMA_Close_M_Period = 13;
 input int EMA_Close_L_Period = 21;
