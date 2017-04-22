@@ -9,6 +9,21 @@
 #property version   "1.00"
 #property strict
 
+input int Magic_Number = 170411;
+
+input bool Friday_PM_Entry = False;
+
+input bool Flat_Lot = True;
+input double Flat_Lot_Rate = 0.01;
+
+input bool MM_Lot = False;
+input double MM_Rate = 100000;
+// entry lot = AccountEquity() / MM_Rate * 0.01
+
+input int Min_Equity_For_Entry = 300000;
+input int Equity_StopLoss = 200000;
+input int Equity_TakeProfit = 1000000;
+
 input bool PB_setting = True;
 input int PB_distance = 2;
 input bool GBP = True;
@@ -18,9 +33,34 @@ input bool AUD = True;
 input bool USD = True;
 input bool JPY = True;
 
+enum Size {
+  M1 = PERIOD_M1,
+  M5 = PERIOD_M5,
+  M15 = PERIOD_M15,
+  M30 = PERIOD_M30,
+  H1 = PERIOD_H1,
+  H4 = PERIOD_H4,
+  D1 = PERIOD_D1,
+  W1 = PERIOD_W1,
+  MN1 = PERIOD_MN1
+};
+
+input Size EMA_Time_Frame = M15;
+input int EMA_Close_S_Period = 5;
+input int EMA_Close_M_Period = 13;
+input int EMA_Close_L_Period = 21;
+
+input int TP = 100;
+input int SL = 20;
+input bool EMA_Exit = True;
+
+
 string possiblePairs[] = {"USDJPY", "EURJPY", "GBPJPY", "AUDJPY", "EURUSD", 
                           "GBPUSD", "AUDCHF", "EURCHF", "GBPCHF", "USDCHF",
                           "CHFJPY", "EURAUD", "EURGBP", "GBPAUD", "AUDUSD"};
+
+int signals[15];
+int hasPositions[15];
 
 int iGBP;
 int iEUR;
@@ -38,12 +78,47 @@ const string status1D = "status1D";
 
 const string standby[] = {"standby0", "standby1", "standby2", "standby3", "standby4"};
 
+double minLot;
+double maxLot;
+double lotSize;
+double lotStep;
+
+
+double calcLot() {
+
+  double lot = 0.0;
+
+  if(MM_Lot) {
+    lot = AccountEquity() / MM_Rate * lotStep;
+  }
+  else if(Flat_Lot) {
+    lot = Flat_Lot_Rate;
+  }
+  
+  lot = MathRound(lot / lotStep) * lotStep;
+  
+  if(maxLot < lot) {
+    lot = maxLot;
+    Print("Lot size(", lot, ") is larger than max(", maxLot, "). Rounded to ", maxLot, ".");
+  }
+  else if(lot < minLot) {
+    lot = 0.0;
+    Print("Lot size(", lot, ") is smaller than min(", minLot, "). Entry skipped.");
+  }
+
+  return lot;
+}
+
+
 void symbolSignal() {
 
   string lbl[] = {"Stand By:", "             ", "             ", "             ", "             "};
   double idx = -0.1;
   
   for(int i = 0; i < 15; i++) {
+  
+    signals[i] = -1;
+
     int d0 = getIndex(StringSubstr(possiblePairs[i], 0, 3), True);
     int d3 = getIndex(StringSubstr(possiblePairs[i], 3, 3), True);
     if(d0 == -1 || d3 == -1) {
@@ -53,16 +128,31 @@ void symbolSignal() {
     int h0 = getIndex(StringSubstr(possiblePairs[i], 0, 3), False);
     int h3 = getIndex(StringSubstr(possiblePairs[i], 3, 3), False);
     
+    double maL1 = iMA(possiblePairs[i], EMA_Time_Frame, EMA_Close_L_Period, 0, MODE_EMA, PRICE_WEIGHTED, 1);
+    double maL2 = iMA(possiblePairs[i], EMA_Time_Frame, EMA_Close_L_Period, 0, MODE_EMA, PRICE_WEIGHTED, 2);
+    double maM1 = iMA(possiblePairs[i], EMA_Time_Frame, EMA_Close_M_Period, 0, MODE_EMA, PRICE_WEIGHTED, 1);
+    double maM2 = iMA(possiblePairs[i], EMA_Time_Frame, EMA_Close_M_Period, 0, MODE_EMA, PRICE_WEIGHTED, 2);
+    double maS1 = iMA(possiblePairs[i], EMA_Time_Frame, EMA_Close_S_Period, 0, MODE_EMA, PRICE_WEIGHTED, 1);
+    double maS2 = iMA(possiblePairs[i], EMA_Time_Frame, EMA_Close_S_Period, 0, MODE_EMA, PRICE_WEIGHTED, 2);
+    
     if(PB_distance < d0 - d3) {
       if(PB_distance < h0 - h3) {
         idx += 1.0;
         lbl[int(MathFloor(idx / 3.0))] += ", sell " + possiblePairs[i];
+
+        if(maL2 < maS2 && maM2 < maS2 && maL1 > maS1 && maM1 > maS1) {
+          signals[i] = OP_SELL;
+        }
       }
     }
     if(PB_distance < d3 - d0) {
       if(PB_distance < h3 - h0) {
         idx += 1.0;
         lbl[int(MathFloor(idx / 3.0))] += ", buy " + possiblePairs[i];
+
+        if(maL2 > maS2 && maM2 > maS2 && maL1 < maS1 && maM1 < maS1) {
+          signals[i] = OP_BUY;
+        }
       }
     }
   }
@@ -244,8 +334,13 @@ void setText() {
 //+------------------------------------------------------------------+
 int OnInit()
   {
+
+  minLot = MarketInfo(Symbol(), MODE_MINLOT);
+  maxLot = MarketInfo(Symbol(), MODE_MAXLOT);
+  lotStep = MarketInfo(Symbol(), MODE_LOTSTEP);
+  lotSize = MarketInfo(Symbol(), MODE_LOTSIZE);
   
-  assignIndex();
+  assignIndex();  
   sortSymbols();
   drawLabel();
   setText();
@@ -274,5 +369,124 @@ void OnTick()
   sortSymbols();
   setText();
   symbolSignal();
-     
+    
+  if(AccountEquity() < Equity_StopLoss) {
+    for(int i = 0; i < OrdersTotal(); i++) {      
+      if(OrderSelect(i, SELECT_BY_POS)) {
+        if(OrderMagicNumber() == Magic_Number) {
+             
+          if(OrderType() == OP_BUY) {
+            if(!OrderClose(OrderTicket(), OrderLots(), NormalizeDouble(MarketInfo(OrderSymbol(), MODE_BID), Digits), 3)) {
+              Print("Error on closing long order: ", GetLastError());
+            }
+            else {
+              i = -1;
+            }
+          }
+          else if(OrderType() == OP_SELL) {
+            if(!OrderClose(OrderTicket(), OrderLots(), NormalizeDouble(MarketInfo(OrderSymbol(), MODE_ASK), Digits), 3)) {
+              Print("Error on closing short order: ", GetLastError());
+            }
+            else {
+              i = -1;
+            }
+          }
+        }
+      }
+    }
+    
+    return;
+  }
+  
+  for(int i = 0; i < 15; i++) {
+    hasPositions[i] = False;
+  }
+
+  
+  for(int i = 0; i < OrdersTotal(); i++) {
+    if(OrderSelect(i, SELECT_BY_POS)) {
+      if(OrderMagicNumber() == Magic_Number) {
+        int direction = OrderType();
+
+        for(int j = 0; j < 15; j++) {
+          if(!StringCompare(possiblePairs[j], OrderSymbol())) {
+            hasPositions[j] = True;
+
+            double maL1 = iMA(possiblePairs[j], EMA_Time_Frame, EMA_Close_L_Period, 0, MODE_EMA, PRICE_WEIGHTED, 1);
+            double maL2 = iMA(possiblePairs[j], EMA_Time_Frame, EMA_Close_L_Period, 0, MODE_EMA, PRICE_WEIGHTED, 2);
+            double maM1 = iMA(possiblePairs[j], EMA_Time_Frame, EMA_Close_M_Period, 0, MODE_EMA, PRICE_WEIGHTED, 1);
+            double maM2 = iMA(possiblePairs[j], EMA_Time_Frame, EMA_Close_M_Period, 0, MODE_EMA, PRICE_WEIGHTED, 2);
+            double maS1 = iMA(possiblePairs[j], EMA_Time_Frame, EMA_Close_S_Period, 0, MODE_EMA, PRICE_WEIGHTED, 1);
+            double maS2 = iMA(possiblePairs[j], EMA_Time_Frame, EMA_Close_S_Period, 0, MODE_EMA, PRICE_WEIGHTED, 2);
+          
+            if(EMA_Exit) {
+              if(direction == OP_BUY) {
+                if(/*maL2 < maS2 && */maM2 < maS2 && /*maL1 > maS1 && */maM1 > maS1) {
+                  bool closed = OrderClose(OrderTicket(), OrderLots(), NormalizeDouble(MarketInfo(OrderSymbol(), MODE_BID), Digits), 3);
+                }
+              }
+              else if(direction == OP_SELL) {
+                if(/*maL2 > maS2 && */maM2 > maS2 && /*maL1 < maS1 && */maM1 < maS1) {       
+                  bool closed = OrderClose(OrderTicket(), OrderLots(), NormalizeDouble(MarketInfo(OrderSymbol(), MODE_ASK), Digits), 3);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+
+  double equity = AccountEquity();
+
+  if(equity < Min_Equity_For_Entry) {
+    Print("Account Equity is too low: " + DoubleToString(equity, 0) + " (< " + IntegerToString(Min_Equity_For_Entry) + ")");
+    return;
+  }
+  else if(Equity_TakeProfit < equity) {
+    Print("Account Equity is too high: " + DoubleToString(equity, 0) + " (< " + IntegerToString(Equity_TakeProfit) + ")");
+    return;
+  }
+  
+  if(!Friday_PM_Entry && DayOfWeek() == 5 && 18 <= TimeHour(TimeLocal())) {
+    return;
+  }
+
+  if(PB_setting) {
+    for(int i = 0; i < 15; i++) {
+      if(!hasPositions[i]) {
+          
+        double tp = TP * MarketInfo(possiblePairs[i], MODE_POINT) * 10;
+        double sl = SL * MarketInfo(possiblePairs[i], MODE_POINT) * 10;
+      
+        if(signals[i] == OP_BUY) {
+          double price = MarketInfo(OrderSymbol(), MODE_ASK);
+          int ticket = OrderSend(possiblePairs[i], OP_BUY, calcLot(), NormalizeDouble(price, Digits), 3, NormalizeDouble(price - sl, Digits), NormalizeDouble(price + tp, Digits), NULL, Magic_Number);
+        }
+        else if(signals[i] == OP_SELL) {        
+          double price = MarketInfo(OrderSymbol(), MODE_BID);
+          int ticket = OrderSend(possiblePairs[i], OP_SELL, calcLot(), NormalizeDouble(price, Digits), 3, NormalizeDouble(price + sl, Digits), NormalizeDouble(price - tp, Digits), NULL, Magic_Number);
+        }
+      }
+    }
+  }
+  else {
+    double maL1 = iMA(Symbol(), PERIOD_CURRENT, EMA_Close_L_Period, 0, MODE_EMA, PRICE_WEIGHTED, 1);
+    double maL2 = iMA(Symbol(), PERIOD_CURRENT, EMA_Close_L_Period, 0, MODE_EMA, PRICE_WEIGHTED, 2);
+    double maM1 = iMA(Symbol(), PERIOD_CURRENT, EMA_Close_M_Period, 0, MODE_EMA, PRICE_WEIGHTED, 1);
+    double maM2 = iMA(Symbol(), PERIOD_CURRENT, EMA_Close_M_Period, 0, MODE_EMA, PRICE_WEIGHTED, 2);
+    double maS1 = iMA(Symbol(), PERIOD_CURRENT, EMA_Close_S_Period, 0, MODE_EMA, PRICE_WEIGHTED, 1);
+    double maS2 = iMA(Symbol(), PERIOD_CURRENT, EMA_Close_S_Period, 0, MODE_EMA, PRICE_WEIGHTED, 2);
+
+    double tp = TP * Point * 10;
+    double sl = SL * Point * 10;
+          
+    if(maL2 < maS2 && maM2 < maS2 && maL1 > maS1 && maM1 > maS1) {
+      int ticket = OrderSend(Symbol(), OP_SELL, calcLot(), NormalizeDouble(Bid, Digits), 3, NormalizeDouble(Bid + sl, Digits), NormalizeDouble(Bid - tp, Digits), NULL, Magic_Number);
+    }
+    if(maL2 > maS2 && maM2 > maS2 && maL1 < maS1 && maM1 < maS1) {       
+      int ticket = OrderSend(Symbol(), OP_BUY, calcLot(), NormalizeDouble(Ask, Digits), 3, NormalizeDouble(Ask - sl, Digits), NormalizeDouble(Ask + tp, Digits), NULL, Magic_Number);
+    }
+  }
 }
