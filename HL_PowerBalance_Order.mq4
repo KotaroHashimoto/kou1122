@@ -659,8 +659,8 @@ void OnTick()
       if(OrderSelect(i, SELECT_BY_POS)) {
         if(!StringCompare(OrderSymbol(), thisSymbol) && OrderMagicNumber() == Magic_Number) {
           if(OrderType() == OP_BUY) {
-            if(OrderStopLoss() < OrderOpenPrice()) {
-              bool modified = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice(), 0, 0);
+            if(OrderStopLoss() + 10.0 * Point * Buy_SL_Adjust_Pips < OrderOpenPrice()) {
+              bool modified = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() + 10.0 * Point * Buy_SL_Adjust_Pips, 0, 0);
               modTime = TimeLocal();
               break;
             }
@@ -677,8 +677,8 @@ void OnTick()
       if(OrderSelect(i, SELECT_BY_POS)) {
         if(!StringCompare(OrderSymbol(), thisSymbol) && OrderMagicNumber() == Magic_Number) {
           if(OrderType() == OP_SELL) {
-            if(OrderOpenPrice() < OrderStopLoss()) {
-              bool modified = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice(), 0, 0);
+            if(OrderOpenPrice() < OrderStopLoss() - 10.0 * Point * Sell_SL_Adjust_Pips) {
+              bool modified = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() - 10.0 * Point * Sell_SL_Adjust_Pips, 0, 0);
               modTime = TimeLocal();
               break;
             }
