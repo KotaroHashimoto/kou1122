@@ -427,11 +427,11 @@ void OnTick()
       double sl = SL * MarketInfo(possiblePairs[i], MODE_POINT) * 10;
       
       if(signals[i] == OP_BUY) {
-        double price = MarketInfo(OrderSymbol(), MODE_ASK);
+        double price = MarketInfo(possiblePairs[i], MODE_ASK);
         int ticket = OrderSend(possiblePairs[i], OP_BUY, calcLot(), NormalizeDouble(price, Digits), 3, NormalizeDouble(price - sl, Digits), NormalizeDouble(price + tp, Digits), NULL, Magic_Number);
       }
       else if(signals[i] == OP_SELL) {        
-        double price = MarketInfo(OrderSymbol(), MODE_BID);
+        double price = MarketInfo(possiblePairs[i], MODE_BID);
         int ticket = OrderSend(possiblePairs[i], OP_SELL, calcLot(), NormalizeDouble(price, Digits), 3, NormalizeDouble(price + sl, Digits), NormalizeDouble(price - tp, Digits), NULL, Magic_Number);
       }
     }
