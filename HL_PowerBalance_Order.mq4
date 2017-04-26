@@ -386,7 +386,7 @@ int OnInit()
   lotSize = MarketInfo(Symbol(), MODE_LOTSIZE);
   
   drawLabel();
-  drawButton();
+//  drawButton();
   
   assignIndex();  
   sortSymbols();
@@ -400,6 +400,8 @@ int OnInit()
       break;
     }
   }
+  
+  LineReset();
 
   //---
   return(INIT_SUCCEEDED);
@@ -413,7 +415,7 @@ void OnDeinit(const int reason)
   ObjectDelete(0, hLineID);
   ObjectDelete(0, lLineID);
   ObjectDelete(0, w2lID);
-  ObjectDelete(0, buttonID);
+//  ObjectDelete(0, buttonID);
   ObjectDelete(0, lotID);
 
   ObjectDelete(status4H);
@@ -690,19 +692,25 @@ void OnTick()
       }
     }
   }
+  
+  if(sellOrderCount == 0 && buyOrderCount == 0) {
+    LineReset();
+  }
 
   if(!Friday_PM_Entry && DayOfWeek() == 5 && 18 <= TimeHour(TimeLocal())) {
     return;
   }
-  
+  /*
   if(ObjectGetInteger(0, buttonID, OBJPROP_STATE) == 0) {
     closeAll(True);
     return;
   }
-  else if(!validateParameters()) {
+  else */if(!validateParameters()) {
     return;
   }
   
+  Print(buyOrderCount);
+  Print(!PB_setting || signals[targetIndex] == OP_BUY);
 
   if(buyOrderCount == 0 && (!PB_setting || signals[targetIndex] == OP_BUY)) {
     orderLong(calcLot());
@@ -714,14 +722,14 @@ void OnTick()
 }
 
 
-void OnChartEvent(const int id,
-                  const long &lparam,
-                  const double &dparam,
-                  const string &sparam)
+void LineReset()
 {
 
-  highPrice = ObjectGetDouble(0, hLineID, OBJPROP_PRICE);
-  lowPrice = ObjectGetDouble(0, lLineID, OBJPROP_PRICE);
+  highPrice = High[iHighest(thisSymbol, PERIOD_CURRENT, MODE_HIGH, Candle_Stick_Period, 1)];
+  lowPrice = Low[iLowest(thisSymbol, PERIOD_CURRENT, MODE_LOW, Candle_Stick_Period, 1)];
+
+//  highPrice = ObjectGetDouble(0, hLineID, OBJPROP_PRICE);
+//  lowPrice = ObjectGetDouble(0, lLineID, OBJPROP_PRICE);
         
   string lbl = "Width to Launch: " + DoubleToString(widthToLaunch(), 3);
   ObjectSetText(w2lID, lbl, 16, "Arial", clrYellow);
@@ -729,12 +737,13 @@ void OnChartEvent(const int id,
   string llbl = lotID + ": " + DoubleToStr(calcLot(), 2);
   ObjectSetText(lotID, llbl, 16, "Arial", clrWhite);
 
+/*
   if(id == CHARTEVENT_OBJECT_CLICK) {
     string clickedChartObject = sparam;
     if(clickedChartObject == buttonID) {
       if(ObjectGetInteger(0, buttonID, OBJPROP_STATE) == 1) {
-
-        ObjectSetString(0, buttonID, OBJPROP_TEXT, "STOP");
+*/
+//        ObjectSetString(0, buttonID, OBJPROP_TEXT, "STOP");
         ObjectSetInteger(0, hLineID, OBJPROP_SELECTABLE, False);
         ObjectSetInteger(0, lLineID, OBJPROP_SELECTABLE, False);
 
@@ -742,6 +751,7 @@ void OnChartEvent(const int id,
         ObjectSet(hLineID, OBJPROP_STYLE, 1);
         ObjectSet(lLineID, OBJPROP_WIDTH, 1);
         ObjectSet(lLineID, OBJPROP_STYLE, 1);
+/*        
       }
       else {
         ObjectSetString(0, buttonID, OBJPROP_TEXT, "RUN");
@@ -758,4 +768,5 @@ void OnChartEvent(const int id,
       }
     }
   }
+*/
 }
