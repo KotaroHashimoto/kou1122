@@ -699,10 +699,12 @@ void OnTick()
     return;
   }
     
-  if(sellOrderCount == 0 && buyOrderCount == 0 && sellStopOrderCount == 0 && buyStopOrderCount == 0) {
+  if(buyOrderCount == 0 && buyStopOrderCount == 0) {
     if(!PB_setting || signals[targetIndex] == OP_BUY) {
       orderLong(calcLot());
     }
+  }
+  if(sellOrderCount == 0 && sellStopOrderCount == 0) {  
     if(!PB_setting || signals[targetIndex] == OP_SELL) {
       orderShort(calcLot());
     }
