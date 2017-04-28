@@ -27,12 +27,6 @@ input double Auto_Lot_Adjust_Times = 1.0;
 extern double Start_Funds = 1000000;
 input double Pool_Percent_Ratio = 50;
 
-input int EMA_Period = 52;
-input int EMA_Slope_pips = 0;
-input int Reverse_Entry = False;
-input int TP = 50;
-input int SL = 50;
-
 
 input int Base_Period_Friday_Hour_Shift = 1;
 input int JST_OffSet = 6;
@@ -52,11 +46,9 @@ string thisSymbol;
 double mondayHigh;
 double mondayLow;
 
-double poolFunds;
-double entryFunds;
-
-double emaDiff;
-double lastEquity;
+double poolFunds = -1.0;
+double entryFunds = -1.0;
+double lastEquity = -1.0;
 
 
 int sellOrderCount;
@@ -205,15 +197,16 @@ int OnInit()
   sellOrderCount = 0;
   buyOrderCount = 0;
 
-  if(Start_Funds <= 0.0) {
-    Start_Funds = AccountEquity();
+  if(lastEquity < 0) {
+  
+    if(Start_Funds <= 0.0) {
+      Start_Funds = AccountEquity();
+    }
+    
+    lastEquity = AccountEquity();
+    entryFunds = Start_Funds;
+    poolFunds = 0;
   }
-  
-  lastEquity = AccountEquity();
-  entryFunds = Start_Funds;
-  poolFunds = 0;
-  
-  emaDiff = EMA_Slope_pips * Point * 10.0;
   
   minLot = MarketInfo(Symbol(), MODE_MINLOT);
   maxLot = MarketInfo(Symbol(), MODE_MAXLOT);
