@@ -472,7 +472,12 @@ void OnTick()
       OnInit();
 
       double diff = (AccountEquity() - lastEquity) * Pool_Percent_Ratio / 100.0;
-      if(0.0 < diff && HighWaterMark) {
+      
+      if(!HighWaterMark) {
+        entryFunds = AccountEquity();
+      }
+      
+      else if(0.0 < diff && HighWaterMark) {
         poolFunds += diff;
         entryFunds = Start_Funds - poolFunds;
     
