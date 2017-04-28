@@ -76,7 +76,9 @@ double highPrice;
 double lowPrice;
 
 int sellOrderCount;
+int sellStopOrderCount;
 int buyOrderCount;
+int buyStopOrderCount;
 
 double minLot;
 double maxLot;
@@ -86,7 +88,6 @@ double lotStep;
 const string hLineID = "Monday High";
 const string lLineID = "Monday Low";
 const string w2lID = "Width to Launch";
-const string buttonID = "BI";
 const string lotID = "Next Lot";
 
 
@@ -307,7 +308,7 @@ double widthToLaunch() {
 }
 
 
-void drawHLine(string id, double pos, string label, color clr = clrYellow, int width = 2, int style = 0, bool selectable = True) {
+void drawHLine(string id, double pos, string label, color clr = clrYellow, int width = 1, int style = 3, bool selectable = False) {
 
   if(style < 0 || 4 < style) {
     style = 0;
@@ -346,24 +347,6 @@ void drawLabel() {
   ObjectSetInteger(0, lotID, OBJPROP_YDISTANCE, 20);
 }
 
-
-void drawButton() {
-
-  ObjectCreate(0, buttonID, OBJ_BUTTON, 0, 100, 100);
-  ObjectSetInteger(0, buttonID, OBJPROP_COLOR, clrWhite);
-  ObjectSetInteger(0, buttonID, OBJPROP_BGCOLOR, clrGray);
-  ObjectSetInteger(0, buttonID, OBJPROP_XDISTANCE, 30);
-  ObjectSetInteger(0, buttonID, OBJPROP_YDISTANCE, 25);
-  ObjectSetInteger(0, buttonID, OBJPROP_XSIZE, 120);
-  ObjectSetInteger(0, buttonID, OBJPROP_YSIZE, 50);
-  ObjectSetString(0, buttonID, OBJPROP_FONT, "Arial");
-  ObjectSetString(0, buttonID, OBJPROP_TEXT, "RUN");
-  ObjectSetInteger(0, buttonID, OBJPROP_FONTSIZE, 15);
-  ObjectSetInteger(0, buttonID, OBJPROP_SELECTABLE, 0);
-
-  ObjectSetInteger(0, buttonID, OBJPROP_STATE, 0);
-}
-
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -379,6 +362,8 @@ int OnInit()
 
   sellOrderCount = 0;
   buyOrderCount = 0;
+  sellStopOrderCount = 0;
+  buyStopOrderCount = 0;
 
   minLot = MarketInfo(Symbol(), MODE_MINLOT);
   maxLot = MarketInfo(Symbol(), MODE_MAXLOT);
@@ -386,7 +371,6 @@ int OnInit()
   lotSize = MarketInfo(Symbol(), MODE_LOTSIZE);
   
   drawLabel();
-//  drawButton();
   
   assignIndex();  
   sortSymbols();
@@ -415,7 +399,6 @@ void OnDeinit(const int reason)
   ObjectDelete(0, hLineID);
   ObjectDelete(0, lLineID);
   ObjectDelete(0, w2lID);
-//  ObjectDelete(0, buttonID);
   ObjectDelete(0, lotID);
 
   ObjectDelete(status4H);
@@ -500,14 +483,24 @@ void countOrders() {
 
   sellOrderCount = 0;
   buyOrderCount = 0;
+  sellStopOrderCount = 0;
+  buyStopOrderCount = 0;
 
   for(int i = 0; i < OrdersTotal(); i++) {
     if(OrderSelect(i, SELECT_BY_POS)) {
       if(!StringCompare(OrderSymbol(), thisSymbol) && OrderMagicNumber() == Magic_Number) {
-        if(OrderType() == OP_SELL || OrderType() == OP_SELLSTOP)
+        if(OrderType() == OP_SELL) {
           sellOrderCount ++;
-        else if(OrderType() == OP_BUY || OrderType() == OP_BUYSTOP)
+        }
+        else if(OrderType() == OP_BUY) {
           buyOrderCount ++;
+        }
+        else if(OrderType() == OP_SELLSTOP) {
+          sellStopOrderCount ++;
+        }
+        else if(OrderType() == OP_BUYSTOP) {
+          buyStopOrderCount ++;
+        }
       }
     }
   }
@@ -661,7 +654,7 @@ void OnTick()
       if(OrderSelect(i, SELECT_BY_POS)) {
         if(!StringCompare(OrderSymbol(), thisSymbol) && OrderMagicNumber() == Magic_Number) {
           if(OrderType() == OP_BUY) {
-            if(OrderStopLoss() + 10.0 * Point * Buy_SL_Adjust_Pips < OrderOpenPrice()) {
+            if(OrderStopLoss() < OrderOpenPrice()) {
               bool modified = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() + 10.0 * Point * Buy_SL_Adjust_Pips, 0, 0);
               modTime = TimeLocal();
               break;
@@ -679,7 +672,7 @@ void OnTick()
       if(OrderSelect(i, SELECT_BY_POS)) {
         if(!StringCompare(OrderSymbol(), thisSymbol) && OrderMagicNumber() == Magic_Number) {
           if(OrderType() == OP_SELL) {
-            if(OrderOpenPrice() < OrderStopLoss() - 10.0 * Point * Sell_SL_Adjust_Pips) {
+            if(OrderOpenPrice() < OrderStopLoss()) {
               bool modified = OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() - 10.0 * Point * Sell_SL_Adjust_Pips, 0, 0);
               modTime = TimeLocal();
               break;
@@ -693,32 +686,37 @@ void OnTick()
     }
   }
   
-  if(sellOrderCount == 0 && buyOrderCount == 0) {
+  if(sellOrderCount == 0 && buyOrderCount == 0 && sellStopOrderCount == 0 && buyStopOrderCount == 0) {
     LineReset();
   }
 
   if(!Friday_PM_Entry && DayOfWeek() == 5 && 18 <= TimeHour(TimeLocal())) {
     return;
   }
-  /*
-  if(ObjectGetInteger(0, buttonID, OBJPROP_STATE) == 0) {
-    closeAll(True);
-    return;
-  }
-  else */if(!validateParameters()) {
-    return;
-  }
-  
-  Print(buyOrderCount);
-  Print(!PB_setting || signals[targetIndex] == OP_BUY);
 
-  if(buyOrderCount == 0 && (!PB_setting || signals[targetIndex] == OP_BUY)) {
-    orderLong(calcLot());
+
+  if(!validateParameters()) {
+    return;
+  }
+    
+  if(sellOrderCount == 0 && buyOrderCount == 0 && sellStopOrderCount == 0 && buyStopOrderCount == 0) {
+    if(!PB_setting || signals[targetIndex] == OP_BUY) {
+      orderLong(calcLot());
+    }
+    if(!PB_setting || signals[targetIndex] == OP_SELL) {
+      orderShort(calcLot());
+    }
   }
   
-  if(sellOrderCount == 0 && (!PB_setting || signals[targetIndex] == OP_SELL)) {
-    orderShort(calcLot());
+  if(0 < buyStopOrderCount && buyOrderCount == 0 && PB_setting && signals[targetIndex] != OP_BUY) {
+    closeAll(True);
   }
+  if(0 < sellStopOrderCount && sellOrderCount == 0 && PB_setting && signals[targetIndex] != OP_SELL) {
+    closeAll(True);
+  }
+  
+  
+  
 }
 
 
@@ -727,9 +725,6 @@ void LineReset()
 
   highPrice = High[iHighest(thisSymbol, PERIOD_CURRENT, MODE_HIGH, Candle_Stick_Period, 1)];
   lowPrice = Low[iLowest(thisSymbol, PERIOD_CURRENT, MODE_LOW, Candle_Stick_Period, 1)];
-
-//  highPrice = ObjectGetDouble(0, hLineID, OBJPROP_PRICE);
-//  lowPrice = ObjectGetDouble(0, lLineID, OBJPROP_PRICE);
         
   string lbl = "Width to Launch: " + DoubleToString(widthToLaunch(), 3);
   ObjectSetText(w2lID, lbl, 16, "Arial", clrYellow);
@@ -737,36 +732,6 @@ void LineReset()
   string llbl = lotID + ": " + DoubleToStr(calcLot(), 2);
   ObjectSetText(lotID, llbl, 16, "Arial", clrWhite);
 
-/*
-  if(id == CHARTEVENT_OBJECT_CLICK) {
-    string clickedChartObject = sparam;
-    if(clickedChartObject == buttonID) {
-      if(ObjectGetInteger(0, buttonID, OBJPROP_STATE) == 1) {
-*/
-//        ObjectSetString(0, buttonID, OBJPROP_TEXT, "STOP");
-        ObjectSetInteger(0, hLineID, OBJPROP_SELECTABLE, False);
-        ObjectSetInteger(0, lLineID, OBJPROP_SELECTABLE, False);
-
-        ObjectSet(hLineID, OBJPROP_WIDTH, 1);
-        ObjectSet(hLineID, OBJPROP_STYLE, 1);
-        ObjectSet(lLineID, OBJPROP_WIDTH, 1);
-        ObjectSet(lLineID, OBJPROP_STYLE, 1);
-/*        
-      }
-      else {
-        ObjectSetString(0, buttonID, OBJPROP_TEXT, "RUN");
-        ObjectSetInteger(0, hLineID, OBJPROP_SELECTABLE, True);
-        ObjectSetInteger(0, lLineID, OBJPROP_SELECTABLE, True);
-
-        highPrice = ObjectGetDouble(0, hLineID, OBJPROP_PRICE);
-        lowPrice = ObjectGetDouble(0, lLineID, OBJPROP_PRICE);
-
-        ObjectSet(hLineID, OBJPROP_WIDTH, 2);
-        ObjectSet(hLineID, OBJPROP_STYLE, 0);
-        ObjectSet(lLineID, OBJPROP_WIDTH, 2);
-        ObjectSet(lLineID, OBJPROP_STYLE, 0);
-      }
-    }
-  }
-*/
+  ObjectSetDouble(0, hLineID, OBJPROP_PRICE, highPrice);
+  ObjectSetDouble(0, lLineID, OBJPROP_PRICE, lowPrice);
 }
