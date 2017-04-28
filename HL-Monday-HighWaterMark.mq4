@@ -204,8 +204,19 @@ int OnInit()
     }
     
     lastEquity = AccountEquity();
-    entryFunds = Start_Funds;
-    poolFunds = 0;
+      
+    if(Start_Funds == AccountEquity()) {
+      entryFunds = Start_Funds;
+      poolFunds = 0;
+    }
+    else if(Start_Funds < AccountEquity()) {
+      entryFunds = AccountEquity() - Start_Funds;
+      poolFunds = (AccountEquity() - Start_Funds) * Pool_Percent_Ratio / 100.0;
+    }
+    else if (AccountEquity() < Start_Funds) {
+      entryFunds = Start_Funds;
+      poolFunds = (AccountEquity() - Start_Funds) * Pool_Percent_Ratio / 100.0;
+    }
   }
   
   minLot = MarketInfo(Symbol(), MODE_MINLOT);
