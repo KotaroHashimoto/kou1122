@@ -23,7 +23,7 @@ input double MM_Rate = 100000;
 input bool Auto_Lot = True;
 input double Auto_Lot_Adjust_Times = 1.0;
 
-
+input bool HighWaterMark = True;
 extern double Start_Funds = 1000000;
 input double Pool_Percent_Ratio = 50;
 
@@ -472,7 +472,7 @@ void OnTick()
       OnInit();
 
       double diff = (AccountEquity() - lastEquity) * Pool_Percent_Ratio / 100.0;
-      if(0.0 < diff) {
+      if(0.0 < diff && HighWaterMark) {
         poolFunds += diff;
         entryFunds = Start_Funds - poolFunds;
     
