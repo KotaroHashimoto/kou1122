@@ -48,7 +48,7 @@ double mondayLow;
 
 double poolFunds = -1.0;
 double entryFunds = -1.0;
-double lastEquity = -1.0;
+double lastMaxEquity = -1.0;
 
 
 int sellOrderCount;
@@ -197,13 +197,13 @@ int OnInit()
   sellOrderCount = 0;
   buyOrderCount = 0;
 
-  if(lastEquity < 0) {
+  if(lastMaxEquity < 0) {
   
     if(Start_Funds <= 0.0) {
       Start_Funds = AccountEquity();
     }
     
-    lastEquity = AccountEquity();
+    lastMaxEquity = AccountEquity();
       
     if(Start_Funds == AccountEquity()) {
       poolFunds = 0;
@@ -482,7 +482,7 @@ void OnTick()
     if(mondayHigh == 0.0) {
       OnInit();
 
-      double diff = (AccountEquity() - lastEquity) * Pool_Percent_Ratio / 100.0;
+      double diff = (AccountEquity() - lastMaxEquity) * Pool_Percent_Ratio / 100.0;
       
       if(!HighWaterMark) {
         entryFunds = AccountEquity();
@@ -491,11 +491,11 @@ void OnTick()
       else if(0.0 < diff && HighWaterMark) {
         poolFunds += diff;
         entryFunds = AccountEquity() - poolFunds;
+        lastMaxEquity = AccountEquity();
     
         ObjectSetText(pFunds, "Pool Funds: " + DoubleToStr(poolFunds, 0), 16, "Arial", clrWhite);
         ObjectSetText(eFunds, "Entry Funds: " + DoubleToStr(entryFunds, 0), 16, "Arial", clrWhite);
       }
-      lastEquity = AccountEquity();
     }
   }
   else if(DayOfWeek() == 5) {
