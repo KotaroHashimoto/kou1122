@@ -211,11 +211,21 @@ int OnInit()
     }
     else if(Start_Funds < AccountEquity()) {
       poolFunds = (AccountEquity() - Start_Funds) * Pool_Percent_Ratio / 100.0;
-      entryFunds = AccountEquity() - poolFunds;
+      if(Start_Funds < AccountEquity() - poolFunds) {
+        entryFunds = AccountEquity() - poolFunds;
+      }
+      else {
+        entryFunds = Start_Funds;
+      }
     }
     else if (AccountEquity() < Start_Funds) {
       poolFunds = (AccountEquity() - Start_Funds) * Pool_Percent_Ratio / 100.0;
-      entryFunds = Start_Funds;
+      if(Start_Funds < AccountEquity() - poolFunds) {
+        entryFunds = AccountEquity() - poolFunds;
+      }
+      else {
+        entryFunds = Start_Funds;
+      }
     }
   }
   
@@ -490,9 +500,14 @@ void OnTick()
       
       else if(0.0 < diff && HighWaterMark) {
         poolFunds += diff;
-        entryFunds = AccountEquity() - poolFunds;
-        lastMaxEquity = AccountEquity();
-    
+        
+        if(entryFunds < AccountEquity() - poolFunds) {
+          entryFunds = AccountEquity() - poolFunds;
+        }
+        if(lastMaxEquity < AccountEquity()) {
+          lastMaxEquity = AccountEquity();
+        }
+            
         ObjectSetText(pFunds, "Pool Funds: " + DoubleToStr(poolFunds, 0), 16, "Arial", clrWhite);
         ObjectSetText(eFunds, "Entry Funds: " + DoubleToStr(entryFunds, 0), 16, "Arial", clrWhite);
       }
