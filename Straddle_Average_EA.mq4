@@ -161,6 +161,9 @@ bool initialEntryCondition() {
       return True;
     }
   }
+  else {
+    return True;
+  }
   
   return False;
 }
