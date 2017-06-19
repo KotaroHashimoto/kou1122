@@ -199,7 +199,7 @@ void closeAll(bool pendingOnly = False) {
             i = -1;
           }
         }
-        else if(OrderType() == OP_BUYSTOP) {
+        else if(OrderType() == OP_BUYLIMIT) {
           if(!OrderDelete(OrderTicket())) {
             Print("Error on deleting buy stop order: ", GetLastError());
           }
@@ -207,7 +207,7 @@ void closeAll(bool pendingOnly = False) {
             i = -1;
           }
         }
-        else if(OrderType() == OP_SELLSTOP) {
+        else if(OrderType() == OP_SELLLIMIT) {
           if(!OrderDelete(OrderTicket())) {
             Print("Error on deleting sell stop order: ", GetLastError());
           }
@@ -255,7 +255,7 @@ void countOrders() {
             lowestSell = OrderTicket();
           }
           
-          if(OrderType() == OP_SELLSTOP) {
+          if(OrderType() == OP_SELLLIMIT) {
             sellOrderCount ++;
             limitOrderCount ++;
           }
@@ -287,7 +287,7 @@ void countOrders() {
             lowestBuy = OrderTicket();
           }
           
-          if(OrderType() == OP_BUYSTOP) {
+          if(OrderType() == OP_BUYLIMIT) {
             buyOrderCount ++;
             limitOrderCount ++;
           }
