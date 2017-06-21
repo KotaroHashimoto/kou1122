@@ -12,7 +12,7 @@
 //--- input parameters
 input int Magic_Number = 1;
 
-input bool Flat_Lot = False;
+input bool Flat_Lot = True;
 input double Flat_Lot_Rate = 0.01;
 
 input bool MM_Lot = True;
@@ -45,7 +45,7 @@ input double Range_Wide_Pips = 20;
 input double TP = 20;
 input double SL = 40;
 input int Max_Level = 6;
-input int ALL_SL_Interval_Hour = 2;
+input double ALL_SL_Interval_Hour = 2;
 
 input double Level_2_Lot_Times = 1.0;
 input double Level_3_Lot_Times = 3.5;
@@ -253,12 +253,7 @@ void countOrders() {
           }
           if(lowestSell == -1) {
             lowestSell = OrderTicket();
-          }
-          
-          if(OrderType() == OP_SELLLIMIT) {
-            sellOrderCount ++;
-            limitOrderCount ++;
-          }
+          }          
           
           double openPrice = OrderOpenPrice();
           int ticket = OrderTicket();
@@ -273,6 +268,11 @@ void countOrders() {
             }
           }          
         }
+        else if(OrderType() == OP_SELLLIMIT) {
+          sellOrderCount ++;
+          limitOrderCount ++;
+        }
+        
         else if(OrderType() == OP_BUY) {
           buyOrderCount ++;
           
@@ -285,11 +285,6 @@ void countOrders() {
           }
           if(lowestBuy == -1) {
             lowestBuy = OrderTicket();
-          }
-          
-          if(OrderType() == OP_BUYLIMIT) {
-            buyOrderCount ++;
-            limitOrderCount ++;
           }
           
           double openPrice = OrderOpenPrice();
@@ -305,6 +300,10 @@ void countOrders() {
             }
           }          
         }
+        else if(OrderType() == OP_BUYLIMIT) {
+          buyOrderCount ++;
+          limitOrderCount ++;
+        }        
       }
     }
   }
@@ -423,10 +422,9 @@ void OnTick()
   countOrders();
   if(initialEntryCondition()) {
     initialEntry();
-  }  
+  }
   
-  if((1 == limitOrderCount && sellOrderCount + buyOrderCount == 3) 
-  || (1 == limitOrderCount && sellOrderCount + buyOrderCount == 0)) {
+  if(1 == limitOrderCount && (sellOrderCount + buyOrderCount) % 4 == 0) {
     closeAll(True);
     
     if(nampinCount == Max_Level && lastLargestLoss < 0.0) {
