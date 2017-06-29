@@ -44,7 +44,7 @@ input int Saturday_Time_Adjust_Hour = 2;
 input double Range_Wide_Pips = 20;
 input double TP = 20;
 input double SL = 40;
-input int Max_Level = 6;
+input int Max_Level = 10;
 input double ALL_SL_Interval_Hour = 2;
 
 input double Level_2_Lot_Times = 1.0;
@@ -424,7 +424,8 @@ void OnTick()
     initialEntry();
   }
   
-  if(1 == limitOrderCount && (sellOrderCount + buyOrderCount) % 4 == 0) {
+  if((1 == limitOrderCount && sellOrderCount + buyOrderCount == 4)
+  || (0 < limitOrderCount && limitOrderCount == sellOrderCount + buyOrderCount)) {
     closeAll(True);
     
     if(nampinCount == Max_Level && lastLargestLoss < 0.0) {
