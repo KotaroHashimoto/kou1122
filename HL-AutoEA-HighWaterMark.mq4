@@ -65,7 +65,7 @@ double lotStep;
 
 const string hLineID = "High Price";
 const string lLineID = "Low Price";
-const string w2lID = "Width to Launch";
+const string nlID = "Next Lot";
 const string closeID = "Closing Time";
 const string closeLabelID = "Close Label";
 
@@ -133,13 +133,13 @@ void drawVLine(string hour, string minute, color clr = clrAqua, int width = 1, i
 
 void drawLabel() {
 
-  ObjectCreate(0, w2lID, OBJ_LABEL, 0, 0, 0);
-  ObjectSetInteger(0, w2lID, OBJPROP_CORNER, CORNER_LEFT_UPPER);
-  ObjectSet(w2lID, OBJPROP_TIMEFRAMES, OBJ_ALL_PERIODS);
-  ObjectSetInteger(0, w2lID, OBJPROP_SELECTABLE, false);
+  ObjectCreate(0, nlID, OBJ_LABEL, 0, 0, 0);
+  ObjectSetInteger(0, nlID, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+  ObjectSet(nlID, OBJPROP_TIMEFRAMES, OBJ_ALL_PERIODS);
+  ObjectSetInteger(0, nlID, OBJPROP_SELECTABLE, false);
 
-  string lbl = "Width to Launch: " + DoubleToString(widthToLaunch(), 3);
-  ObjectSetText(w2lID, lbl, 16, "Arial", clrYellow);
+  string lbl = "Next Lot: " + DoubleToString(calcLot(), 3);
+  ObjectSetText(nlID, lbl, 16, "Arial", clrYellow);
 
 
   ObjectCreate(0, closeLabelID, OBJ_LABEL, 0, 0, 0);
@@ -249,7 +249,7 @@ void OnDeinit(const int reason)
 {
   ObjectDelete(0, hLineID);
   ObjectDelete(0, lLineID);
-  ObjectDelete(0, w2lID);
+  ObjectDelete(0, nlID);
   ObjectDelete(0, closeID);
   ObjectDelete(0, closeLabelID);
 
@@ -518,6 +518,14 @@ void OnTick()
             
     ObjectSetText(pFunds, "Pool Funds: " + DoubleToStr(poolFunds, 0), 16, "Arial", clrWhite);
     ObjectSetText(eFunds, "Entry Funds: " + DoubleToStr(entryFunds, 0), 16, "Arial", clrWhite);
+
+    string lbl = "Next Lot: " + DoubleToString(calcLot(), 3);
+    ObjectSetText(nlID, lbl, 16, "Arial", clrYellow);
+
+    string time = IntegerToString((23 - Base_Period_Friday_Hour_Shift + JST_OffSet) % 24) + ":" + IntegerToString(59);
+    string tlbl = "Saturday Close Time: " + time;
+    ObjectSetText(closeLabelID, tlbl, 16, "Arial", clrAqua);
+    ObjectSetInteger(0, closeLabelID, OBJPROP_YDISTANCE, 20);
   }
   
   if(DayOfWeek() == 5) {
